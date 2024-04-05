@@ -162,10 +162,12 @@ async fn main() {
         -100., -100., 200., 200.,
     )));
 
-    for step in steps.iter() {
-        clear_background(WHITE);
-        step.draw();
-        next_frame().await;
+    loop {
+        for step in steps.iter().chain(steps.iter().rev()) {
+            clear_background(WHITE);
+            step.draw();
+            next_frame().await;
+        }
     }
 }
 
