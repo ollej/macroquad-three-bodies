@@ -107,12 +107,14 @@ impl fmt::Display for Step {
     }
 }
 
-fn simulate(mut step: Step, count: usize, time_step: f64) -> Vec<Step> {
-    let mut steps = Vec::<Step>::with_capacity(count);
+fn simulate(mut step: Step, count: usize, time_step: f64, steps_per_frame: usize) -> Vec<Step> {
+    let mut steps = Vec::<Step>::with_capacity(count / steps_per_frame);
 
-    for _ in 0..count {
+    for n in 0..count {
         step.update(time_step);
-        steps.push(step);
+        if n % steps_per_frame == 0 {
+            steps.push(step);
+        }
         step = step.next_step(time_step);
     }
 
@@ -126,15 +128,15 @@ async fn main() {
     let third = Body::new(dvec2(0.5, 0.0));
 
     let initial_step = Step::new(first, second, third);
-    let steps = simulate(initial_step, STEPS, TIME_STEP);
+    let steps_per_frame =
+        (STEPS as f64 / (ANIMATION_LENGTH * ANIMATION_FPS) as f64).round() as usize;
+    let steps = simulate(initial_step, STEPS, TIME_STEP, steps_per_frame);
 
     set_camera(&Camera2D::from_display_rect(Rect::new(
         -100., -100., 200., 200.,
     )));
-    let steps_per_frame =
-        (STEPS as f64 / (ANIMATION_LENGTH * ANIMATION_FPS) as f64).round() as usize;
 
-    for step in steps.iter().step_by(steps_per_frame) {
+    for step in steps.iter() {
         clear_background(WHITE);
 
         draw_circle(
@@ -170,7 +172,7 @@ mod tests {
         let third = Body::new(dvec2(0.5, 0.0));
 
         let initial_step = Step::new(first, second, third);
-        let steps = simulate(initial_step, 5, 0.5);
+        let steps = simulate(initial_step, 5, 0.5, 1);
 
         assert_eq!(
             steps,
