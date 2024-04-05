@@ -21,6 +21,11 @@ impl Body {
             position,
         }
     }
+
+    fn update(&mut self) {
+        self.position.x += self.velocity.x * TIME_STEP;
+        self.position.y += self.velocity.y * TIME_STEP;
+    }
 }
 
 struct Step {
@@ -29,10 +34,18 @@ struct Step {
     bodies: [Body; 3],
 }
 
+impl Step {
+    fn update(&mut self) {
+        self.bodies.iter_mut().for_each(|body| body.update());
+    }
+}
+
 fn main() {
     let mut first = Body::new(dvec2(0.3089693008, 0.4236727692));
     let mut second = Body::new(dvec2(-0.5, 0.0));
     let mut third = Body::new(dvec2(0.5, 0.0));
+
+    let mut steps = Vec::<Step>::with_capacity(STEPS);
 
     for n in 0..STEPS {
         let mut new_step = Step {
@@ -43,34 +56,32 @@ fn main() {
 
         for i in 0..3 {
             for j in 0..3 {
-                if i != j {
-                    let a = &new_step.bodies[j];
-                    let mut b: Body = new_step.bodies[i];
-
-                    let dx = a.position.x - b.position.x;
-                    let dy: f64 = a.position.y - b.position.y;
-
-                    let r: f64 = (dx * dx + dy * dy).sqrt();
-                    let force = GRAVITATIONAL_CONSTANT * a.mass * b.mass / r / r;
-                    let angle = dy.atan2(dx);
-                    let fx = force * angle.cos();
-                    let fy = force * angle.sin();
-                    b.velocity.x += fx / b.mass * TIME_STEP;
-                    b.velocity.y += fy / b.mass * TIME_STEP;
-
-                    new_step.bodies[i] = b;
+                if i == j {
+                    continue;
                 }
+                let a = &new_step.bodies[j];
+                let mut b: Body = new_step.bodies[i];
+
+                let dx = a.position.x - b.position.x;
+                let dy: f64 = a.position.y - b.position.y;
+
+                let r: f64 = (dx * dx + dy * dy).sqrt();
+                let force = GRAVITATIONAL_CONSTANT * a.mass * b.mass / r / r;
+                let angle = dy.atan2(dx);
+                let fx = force * angle.cos();
+                let fy = force * angle.sin();
+                b.velocity.x += fx / b.mass * TIME_STEP;
+                b.velocity.y += fy / b.mass * TIME_STEP;
+
+                new_step.bodies[i] = b;
             }
         }
 
-        for body in new_step.bodies.iter_mut() {
-            body.position.x += body.velocity.x * TIME_STEP;
-            body.position.y += body.velocity.y * TIME_STEP;
-        }
+        new_step.update();
 
-        first = new_step.bodies[0];
-        second = new_step.bodies[1];
-        third = new_step.bodies[2];
+        [first, second, third] = new_step.bodies;
+
+        steps.push(new_step);
 
         // report current state
         if n % 1000 == 0 {
