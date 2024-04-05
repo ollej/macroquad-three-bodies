@@ -74,10 +74,8 @@ impl fmt::Display for Step {
     }
 }
 
-fn simulate(first: Body, second: Body, third: Body, count: usize, time_step: f64) -> Vec<Step> {
+fn simulate(mut step: Step, count: usize, time_step: f64) -> Vec<Step> {
     let mut steps = Vec::<Step>::with_capacity(count);
-
-    let mut step = Step::new(first, second, third);
 
     for n in 0..count {
         for i in 0..3 {
@@ -120,7 +118,8 @@ fn main() {
     let second = Body::new(dvec2(-0.5, 0.0));
     let third = Body::new(dvec2(0.5, 0.0));
 
-    simulate(first, second, third, STEPS, TIME_STEP);
+    let initial_step = Step::new(first, second, third);
+    simulate(initial_step, STEPS, TIME_STEP);
 }
 
 #[cfg(test)]
@@ -133,7 +132,8 @@ mod tests {
         let second = Body::new(dvec2(-0.5, 0.0));
         let third = Body::new(dvec2(0.5, 0.0));
 
-        let steps = simulate(first, second, third, 5, TIME_STEP);
+        let initial_step = Step::new(first, second, third);
+        let steps = simulate(initial_step, 5, TIME_STEP);
 
         assert_eq!(
             steps,
