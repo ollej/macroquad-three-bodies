@@ -1,8 +1,8 @@
 use macroquad::prelude::*;
 use std::fmt;
 
-const TIME_STEP: f64 = 0.5;
-const STEPS: usize = 100000;
+const TIME_STEP: f64 = 0.05;
+const STEPS: usize = 10000000;
 const GRAVITATIONAL_CONSTANT: f64 = 6.67430e-11;
 
 type Position = DVec2;
@@ -23,9 +23,9 @@ impl Body {
         }
     }
 
-    fn update(&mut self) {
-        self.position.x += self.velocity.x * TIME_STEP;
-        self.position.y += self.velocity.y * TIME_STEP;
+    fn update(&mut self, time_step: f64) {
+        self.position.x += self.velocity.x * time_step;
+        self.position.y += self.velocity.y * time_step;
     }
 }
 
@@ -51,8 +51,11 @@ impl Step {
         }
     }
 
-    fn update(&mut self) {
-        self.bodies.iter_mut().for_each(|body| body.update());
+    fn update(&mut self, time_step: f64) {
+        self.calculate_step(time_step);
+        self.bodies
+            .iter_mut()
+            .for_each(|body| body.update(time_step));
     }
 
     fn next_step(self, time_step: f64) -> Self {
@@ -61,6 +64,34 @@ impl Step {
             step: self.step + 1,
             bodies: self.bodies,
         }
+    }
+
+    fn calculate_step(&mut self, time_step: f64) {
+        for i in 0..3 {
+            for j in 0..3 {
+                if i != j {
+                    self.calculate_bodies(i, j, time_step);
+                }
+            }
+        }
+    }
+
+    fn calculate_bodies(&mut self, i: usize, j: usize, time_step: f64) {
+        let a = &self.bodies[j];
+        let mut b: Body = self.bodies[i];
+
+        let dx = a.position.x - b.position.x;
+        let dy: f64 = a.position.y - b.position.y;
+
+        let r: f64 = (dx * dx + dy * dy).sqrt();
+        let force = GRAVITATIONAL_CONSTANT * a.mass * b.mass / r / r;
+        let angle = dy.atan2(dx);
+        let fx = force * angle.cos();
+        let fy = force * angle.sin();
+        b.velocity.x += fx / b.mass * time_step;
+        b.velocity.y += fy / b.mass * time_step;
+
+        self.bodies[i] = b;
     }
 }
 
@@ -77,49 +108,78 @@ impl fmt::Display for Step {
 fn simulate(mut step: Step, count: usize, time_step: f64) -> Vec<Step> {
     let mut steps = Vec::<Step>::with_capacity(count);
 
+    let mut maxx: f64 = f64::MIN;
+    let mut maxy: f64 = f64::MIN;
+    let mut minx: f64 = f64::MAX;
+    let mut miny: f64 = f64::MAX;
     for n in 0..count {
-        for i in 0..3 {
-            for j in 0..3 {
-                if i == j {
-                    continue;
-                }
-                let a = &step.bodies[j];
-                let mut b: Body = step.bodies[i];
-
-                let dx = a.position.x - b.position.x;
-                let dy: f64 = a.position.y - b.position.y;
-
-                let r: f64 = (dx * dx + dy * dy).sqrt();
-                let force = GRAVITATIONAL_CONSTANT * a.mass * b.mass / r / r;
-                let angle = dy.atan2(dx);
-                let fx = force * angle.cos();
-                let fy = force * angle.sin();
-                b.velocity.x += fx / b.mass * time_step;
-                b.velocity.y += fy / b.mass * time_step;
-
-                step.bodies[i] = b;
-            }
-        }
-
-        step.update();
+        step.update(time_step);
         steps.push(step);
         step = step.next_step(time_step);
 
         // report current state
-        if n % 1000 == 0 {
-            println!("{}", step);
-        }
+        //if n % 1000 == 0 {
+        //    println!("{}", step);
+        //}
+        maxx = maxx
+            .max(step.bodies[0].position.x)
+            .max(step.bodies[1].position.x)
+            .max(step.bodies[2].position.x);
+        maxy = maxy
+            .max(step.bodies[0].position.y)
+            .max(step.bodies[1].position.x)
+            .max(step.bodies[2].position.x);
+        minx = minx
+            .min(step.bodies[0].position.x)
+            .min(step.bodies[1].position.y)
+            .min(step.bodies[2].position.y);
+        miny = miny
+            .min(step.bodies[0].position.y)
+            .min(step.bodies[1].position.y)
+            .min(step.bodies[2].position.y);
     }
+
+    println!("Max x: {}, Max y: {}", maxx, maxy);
+    println!("Min x: {}, Min y: {}", minx, miny);
     steps
 }
 
-fn main() {
+#[macroquad::main("Three bodies")]
+async fn main() {
     let first = Body::new(dvec2(0.3089693008, 0.4236727692));
     let second = Body::new(dvec2(-0.5, 0.0));
     let third = Body::new(dvec2(0.5, 0.0));
 
     let initial_step = Step::new(first, second, third);
-    simulate(initial_step, STEPS, TIME_STEP);
+    let steps = simulate(initial_step, STEPS, TIME_STEP);
+    // Max x: 3.706346627659125, Max y: 4.389879388258775
+    // Min x: -3.997704051591547, Min y: -3.997704051591547
+    set_camera(&Camera2D::from_display_rect(Rect::new(
+        -100., -100., 200., 200.,
+    )));
+    for step in steps.iter().step_by(3000) {
+        clear_background(WHITE);
+
+        draw_circle(
+            step.bodies[0].position.x as f32 * 100.,
+            step.bodies[0].position.y as f32 * 100.,
+            2.,
+            RED,
+        );
+        draw_circle(
+            step.bodies[1].position.x as f32 * 100.,
+            step.bodies[1].position.y as f32 * 100.,
+            2.,
+            GREEN,
+        );
+        draw_circle(
+            step.bodies[2].position.x as f32 * 100.,
+            step.bodies[2].position.y as f32 * 100.,
+            2.,
+            BLUE,
+        );
+        next_frame().await;
+    }
 }
 
 #[cfg(test)]
@@ -133,7 +193,7 @@ mod tests {
         let third = Body::new(dvec2(0.5, 0.0));
 
         let initial_step = Step::new(first, second, third);
-        let steps = simulate(initial_step, 5, TIME_STEP);
+        let steps = simulate(initial_step, 5, 0.5);
 
         assert_eq!(
             steps,
