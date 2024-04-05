@@ -1,4 +1,5 @@
 use macroquad::prelude::*;
+use std::fmt;
 
 const TIME_STEP: f64 = 0.5;
 const STEPS: usize = 100000;
@@ -6,7 +7,7 @@ const GRAVITATIONAL_CONSTANT: f64 = 6.67430e-11;
 
 type Position = DVec2;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 struct Body {
     mass: f64,
     position: Position,
@@ -28,6 +29,13 @@ impl Body {
     }
 }
 
+impl fmt::Display for Body {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({:.04}, {:.04})", self.position.x, self.position.y)
+    }
+}
+
+#[derive(Clone, Copy)]
 struct Step {
     time: f64,
     step: u32,
@@ -37,6 +45,16 @@ struct Step {
 impl Step {
     fn update(&mut self) {
         self.bodies.iter_mut().for_each(|body| body.update());
+    }
+}
+
+impl fmt::Display for Step {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Step:")?;
+        for body in self.bodies.iter() {
+            write!(f, " {}", body)?;
+        }
+        write!(f, "")
     }
 }
 
@@ -85,9 +103,7 @@ fn main() {
 
         // report current state
         if n % 1000 == 0 {
-            print!("({:.04}, {:.04})", first.position.x, first.position.y);
-            print!(" ({:.04}, {:.04})", second.position.x, second.position.y);
-            println!(" ({:.04}, {:.04})", third.position.x, third.position.y);
+            println!("{}", new_step);
         }
     }
 }
