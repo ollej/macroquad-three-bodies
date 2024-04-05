@@ -4,6 +4,8 @@ use std::fmt;
 const TIME_STEP: f64 = 0.05;
 const STEPS: usize = 10000000;
 const GRAVITATIONAL_CONSTANT: f64 = 6.67430e-11;
+const ANIMATION_FPS: u32 = 30;
+const ANIMATION_LENGTH: u32 = 40;
 
 type Position = DVec2;
 
@@ -108,39 +110,12 @@ impl fmt::Display for Step {
 fn simulate(mut step: Step, count: usize, time_step: f64) -> Vec<Step> {
     let mut steps = Vec::<Step>::with_capacity(count);
 
-    let mut maxx: f64 = f64::MIN;
-    let mut maxy: f64 = f64::MIN;
-    let mut minx: f64 = f64::MAX;
-    let mut miny: f64 = f64::MAX;
-    for n in 0..count {
+    for _ in 0..count {
         step.update(time_step);
         steps.push(step);
         step = step.next_step(time_step);
-
-        // report current state
-        //if n % 1000 == 0 {
-        //    println!("{}", step);
-        //}
-        maxx = maxx
-            .max(step.bodies[0].position.x)
-            .max(step.bodies[1].position.x)
-            .max(step.bodies[2].position.x);
-        maxy = maxy
-            .max(step.bodies[0].position.y)
-            .max(step.bodies[1].position.x)
-            .max(step.bodies[2].position.x);
-        minx = minx
-            .min(step.bodies[0].position.x)
-            .min(step.bodies[1].position.y)
-            .min(step.bodies[2].position.y);
-        miny = miny
-            .min(step.bodies[0].position.y)
-            .min(step.bodies[1].position.y)
-            .min(step.bodies[2].position.y);
     }
 
-    println!("Max x: {}, Max y: {}", maxx, maxy);
-    println!("Min x: {}, Min y: {}", minx, miny);
     steps
 }
 
@@ -152,12 +127,14 @@ async fn main() {
 
     let initial_step = Step::new(first, second, third);
     let steps = simulate(initial_step, STEPS, TIME_STEP);
-    // Max x: 3.706346627659125, Max y: 4.389879388258775
-    // Min x: -3.997704051591547, Min y: -3.997704051591547
+
     set_camera(&Camera2D::from_display_rect(Rect::new(
         -100., -100., 200., 200.,
     )));
-    for step in steps.iter().step_by(3000) {
+    let steps_per_frame =
+        (STEPS as f64 / (ANIMATION_LENGTH * ANIMATION_FPS) as f64).round() as usize;
+
+    for step in steps.iter().step_by(steps_per_frame) {
         clear_background(WHITE);
 
         draw_circle(
