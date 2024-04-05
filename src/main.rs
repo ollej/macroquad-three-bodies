@@ -1,8 +1,8 @@
 use macroquad::prelude::*;
 use std::fmt;
 
-const TIME_STEP: f64 = 0.05;
-const STEPS: usize = 10000000;
+const TIME_STEP: f64 = 0.01;
+const STEPS: usize = 100000000;
 const GRAVITATIONAL_CONSTANT: f64 = 6.67430e-11;
 const ANIMATION_FPS: u32 = 30;
 const ANIMATION_LENGTH: u32 = 40;
@@ -51,6 +51,27 @@ impl Step {
             step: 0,
             bodies: [first, second, third],
         }
+    }
+
+    fn draw(&self) {
+        draw_circle(
+            self.bodies[0].position.x as f32 * 100.,
+            self.bodies[0].position.y as f32 * 100.,
+            2.,
+            RED,
+        );
+        draw_circle(
+            self.bodies[1].position.x as f32 * 100.,
+            self.bodies[1].position.y as f32 * 100.,
+            2.,
+            GREEN,
+        );
+        draw_circle(
+            self.bodies[2].position.x as f32 * 100.,
+            self.bodies[2].position.y as f32 * 100.,
+            2.,
+            BLUE,
+        );
     }
 
     fn update(&mut self, time_step: f64) {
@@ -138,25 +159,7 @@ async fn main() {
 
     for step in steps.iter() {
         clear_background(WHITE);
-
-        draw_circle(
-            step.bodies[0].position.x as f32 * 100.,
-            step.bodies[0].position.y as f32 * 100.,
-            2.,
-            RED,
-        );
-        draw_circle(
-            step.bodies[1].position.x as f32 * 100.,
-            step.bodies[1].position.y as f32 * 100.,
-            2.,
-            GREEN,
-        );
-        draw_circle(
-            step.bodies[2].position.x as f32 * 100.,
-            step.bodies[2].position.y as f32 * 100.,
-            2.,
-            BLUE,
-        );
+        step.draw();
         next_frame().await;
     }
 }
