@@ -137,6 +137,10 @@ fn simulate(mut step: Step, count: usize, time_step: f64, steps_per_frame: usize
             steps.push(step);
         }
         step = step.next_step(time_step);
+
+        if n % 1000000 == 0 {
+            debug!("Finished step {}", n);
+        }
     }
 
     steps
@@ -152,6 +156,7 @@ async fn main() {
     let steps_per_frame =
         (STEPS as f64 / (ANIMATION_LENGTH * ANIMATION_FPS) as f64).round() as usize;
     let steps = simulate(initial_step, STEPS, TIME_STEP, steps_per_frame);
+    debug!("Simulation finished");
 
     set_camera(&Camera2D::from_display_rect(Rect::new(
         -100., -100., 200., 200.,
